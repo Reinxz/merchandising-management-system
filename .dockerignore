@@ -2,8 +2,10 @@ node_modules
 .next
 .git
 .env
-.env.*
-!.env.example
+.env.local
+.env.development
+.env.test
+.env.*.local
 npm-debug.log*
 pnpm-debug.log*
 .DS_Store
