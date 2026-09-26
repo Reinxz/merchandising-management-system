@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signIn, signUp } from '@/lib/supabase/client'
+import { signIn, signInWithGoogle, signUp } from '@/lib/supabase/client'
 
 export function AuthLogin() {
   const [email, setEmail] = useState('')
@@ -17,9 +17,14 @@ export function AuthLogin() {
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (loading) return
+    const normalizedEmail = email.trim()
+    if (!normalizedEmail || !password || (mode === 'signup' && !fullName.trim())) {
+      setMessage('Enter all required fields.')
+      return
+    }
     setLoading(true)
     setMessage('')
-    const result = mode === 'signin' ? await signIn(email.trim(), password) : await signUp(email.trim(), password, fullName.trim())
+    const result = mode === 'signin' ? await signIn(normalizedEmail, password) : await signUp(normalizedEmail, password, fullName.trim())
     setLoading(false)
     if (result.error) {
       const errorText = result.error.message.toLowerCase()
@@ -47,7 +52,11 @@ export function AuthLogin() {
         {message && <p role="status" aria-live="polite" className="text-sm text-violet-700">{message}</p>}
         <button type="submit" disabled={loading} aria-busy={loading} className="min-h-12 rounded-xl bg-violet-800 py-3 font-semibold text-white shadow-sm transition hover:bg-violet-900 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">{loading ? 'Signing you in…' : mode === 'signin' ? 'Sign in' : 'Create account'}</button>
       </form>
-      <button onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')} className="mt-5 w-full text-sm text-violet-700">{mode === 'signin' ? 'Need an account? Create one' : 'Already registered? Sign in'}</button>
+      {mode === 'signin' && <>
+        <div className="my-4 flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" />or<span className="h-px flex-1 bg-slate-200" /></div>
+        <button type="button" onClick={async () => { setLoading(true); setMessage('Redirecting to Google…'); const result = await signInWithGoogle(); if (result.error) { setLoading(false); setMessage('Google sign-in is unavailable. Please use email and password.'); } }} disabled={loading} className="min-h-12 w-full rounded-xl border border-slate-200 bg-white py-3 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60">Continue with Google</button>
+      </>}
+      <button type="button" onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setMessage('') }} className="mt-5 w-full text-sm text-violet-700">{mode === 'signin' ? 'Need an account? Create one' : 'Already registered? Sign in'}</button>
     </section>
   </main>
 }

@@ -21,6 +21,15 @@ export async function signIn(email: string, password: string) {
   return result
 }
 
+export async function signInWithGoogle() {
+  return createClient().auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback`,
+    },
+  })
+}
+
 export async function signUp(email: string, password: string, fullName: string) {
   return createClient().auth.signUp({
     email,
