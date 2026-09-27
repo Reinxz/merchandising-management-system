@@ -14,22 +14,65 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session)
-      if (data.session?.user) {
-        const { data: p } = await getProfile(data.session.user.id)
-        setProfile(p)
+    let sequence = 0
+    let active = true
+
+    async function syncSession(next: Session) {
+      const currentSequence = ++sequence
+      if (!next) {
+        setSession(null)
+        setProfile(null)
+        setLoading(false)
+        return
+      }
+
+      try {
+        const verification = await fetch('/api/auth/session', { cache: 'no-store' })
+        if (!verification.ok) {
+          await supabase.auth.signOut({ scope: 'local' })
+          if (active && currentSequence === sequence) {
+            setSession(null)
+            setProfile(null)
+            setLoading(false)
+          }
+          return
+        }
+
+        const { data: p } = await getProfile(next.user.id)
         const [inventory, suppliers, purchaseOrders] = await Promise.all([
           supabase.from('inventory_items').select('id', { count: 'exact', head: true }),
           supabase.from('suppliers').select('id', { count: 'exact', head: true }),
           supabase.from('purchase_orders').select('id', { count: 'exact', head: true }),
         ])
-        setLiveCounts({ inventory: inventory.count || 0, suppliers: suppliers.count || 0, purchaseOrders: purchaseOrders.count || 0 })
+        if (!active || currentSequence !== sequence) return
+
+        setProfile(p)
+        setLiveCounts({
+          inventory: inventory.count || 0,
+          suppliers: suppliers.count || 0,
+          purchaseOrders: purchaseOrders.count || 0,
+        })
+        setSession(next)
+        setLoading(false)
+      } catch {
+        if (active && currentSequence === sequence) {
+          setSession(null)
+          setProfile(null)
+          setLoading(false)
+        }
       }
-      setLoading(false)
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (active) void syncSession(data.session)
     })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => setSession(next))
-    return () => listener.subscription.unsubscribe()
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => {
+      void syncSession(next)
+    })
+    return () => {
+      active = false
+      listener.subscription.unsubscribe()
+    }
   }, [])
   if (loading) return <div className="min-h-screen bg-[#f7f5fb] flex items-center justify-center text-violet-900">Loading TRI-M SCIMS...</div>
   if (!session) return <AuthLogin />

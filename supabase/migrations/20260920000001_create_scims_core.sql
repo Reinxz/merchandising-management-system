@@ -61,11 +61,16 @@ alter table public.inventory_items enable row level security;
 alter table public.suppliers enable row level security;
 alter table public.purchase_orders enable row level security;
 
+drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own" on public.profiles for select to authenticated using ((select auth.uid()) = id);
+drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own" on public.profiles for update to authenticated using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 
+drop policy if exists "inventory_owner_access" on public.inventory_items;
 create policy "inventory_owner_access" on public.inventory_items for all to authenticated using ((select auth.uid()) = owner_id) with check ((select auth.uid()) = owner_id);
+drop policy if exists "suppliers_owner_access" on public.suppliers;
 create policy "suppliers_owner_access" on public.suppliers for all to authenticated using ((select auth.uid()) = owner_id) with check ((select auth.uid()) = owner_id);
+drop policy if exists "purchase_orders_owner_access" on public.purchase_orders;
 create policy "purchase_orders_owner_access" on public.purchase_orders for all to authenticated using ((select auth.uid()) = owner_id) with check ((select auth.uid()) = owner_id);
 
 -- Create a profile automatically when a user confirms sign-up.

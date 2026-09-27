@@ -1,6 +1,6 @@
 import { createClient } from './client'
 
-export type AuditAction = 'login' | 'logout' | 'create' | 'update' | 'delete' | 'approve' | 'cancel'
+export type AuditAction = 'login' | 'login_attempt' | 'logout' | 'create' | 'update' | 'delete' | 'approve' | 'cancel'
 
 export type AuditLogInput = {
   userId: string

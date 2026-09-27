@@ -14,6 +14,7 @@ create table if not exists public.sales (
 create index if not exists sales_owner_created_idx on public.sales(owner_id, created_at desc);
 alter table public.sales enable row level security;
 
+drop policy if exists "sales_owner_access" on public.sales;
 create policy "sales_owner_access" on public.sales for all to authenticated
   using ((select auth.uid()) = owner_id)
   with check ((select auth.uid()) = owner_id);
